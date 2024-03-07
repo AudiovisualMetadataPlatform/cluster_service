@@ -17,7 +17,7 @@ fi
 
 # create the VENV
 echo Using python3.$python_version
-python3.$python_version -m venv $SCRIPT_DIR/.venv
+python3.$python_version -m venv --copies $SCRIPT_DIR/.venv
 
 # install packages
 source $SCRIPT_DIR/.venv/bin/activate
