@@ -28,5 +28,5 @@ pip3.$python_version install -r $SCRIPT_DIR/requirements.txt
 # use the activate_venv.py module.
 mkdir $SCRIPT_DIR/.venv/environ
 for n in PATH LD_LIBRARY_PATH; do 
-    echo ${$n} > $SCRIPT_DIR/.venv/environ/$n
+    eval echo \$$n > $SCRIPT_DIR/.venv/environ/$n
 done

@@ -64,3 +64,5 @@ if 'VENV_RESTART' not in os.environ:
 else:
     if debug:
         print("Second go-round", os.getpid())
+        print("PATH:", os.environ['PATH'])
+        print("LD_LIBRARY_PATH:", os.environ['LD_LIBRARY_PATH'])
