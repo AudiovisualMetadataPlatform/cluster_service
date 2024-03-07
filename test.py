@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/usr/bin/env python3
 import platform
 print("Current version", platform.python_version_tuple())
 
