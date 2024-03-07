@@ -17,9 +17,16 @@ fi
 
 # create the VENV
 echo Using python3.$python_version
-python3.$python_version -m venv --copies $SCRIPT_DIR/.venv
+python3.$python_version -m venv $SCRIPT_DIR/.venv
 
 # install packages
 source $SCRIPT_DIR/.venv/bin/activate
 pip3.$python_version install --upgrade pip
 pip3.$python_version install -r $SCRIPT_DIR/requirements.txt
+
+# save the values of PATH and LD_LIBRARY_PATH so they'll be available when we 
+# use the activate_venv.py module.
+mkdir $SCRIPT_DIR/.venv/environ
+for n in PATH LD_LIBRARY_PATH; do 
+    echo ${$n} > $SCRIPT_DIR/.venv/environ/$n
+done
