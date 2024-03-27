@@ -151,7 +151,7 @@ class ClusterService():
 
             # update the core data 
             jobdata.update({'jobdir': jobfile.parent,
-                            'settled': (time.time() - jobfile.stat().st_mtime) > self.JOB_SETTLE_TIME})
+                            'settle_time': self.JOB_SETTLE_TIME + jobfile.stat().st_mtime})
             
             # filter the jobfile to see if there's anything todo in the manifest.
             self.filter_jobdata(jobdata)
@@ -164,7 +164,7 @@ class ClusterService():
 
         # filter out everything that isn't settled...
         while True:
-            todo = [x for x in results if x['settled']]
+            todo = [x for x in results if x['settle_time'] < time.time()]
             if results and not todo:
                 # we have results but none of them are ready.  Wait a bit and
                 # try again.
