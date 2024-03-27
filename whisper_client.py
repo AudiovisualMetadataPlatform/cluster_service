@@ -137,7 +137,7 @@ def check_job(ssh: paramiko.SSHClient, hpcworkdir=None, jobid=None, **kwargs):
     job = yaml.safe_load(sftp.open(f"{hpcworkdir}/{jobid}/whisper.job").read())
     for n in job['manifest']:
         try:
-            sftp.stat(f"{hpcworkdir}/{jobid}/{n}")
+            sftp.stat(f"{hpcworkdir}/{jobid}/{n}.whisper.json")
         except:
             print("IN PROGRESS")
             exit(2)
