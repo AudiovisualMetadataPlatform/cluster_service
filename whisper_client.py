@@ -38,6 +38,9 @@ def main():
     sp = sps.add_parser('purge', help="Remove a job from the server")
     sp.add_argument("jobid", help="Job ID")
 
+    sp = sps.add_parser('restart', help="Force the server to restart")
+
+
     args = vars(parser.parse_args())
     logging.basicConfig(level=logging.DEBUG if args['debug'] else logging.INFO,
                     format="%(asctime)s [%(process)d:%(filename)s:%(lineno)d] [%(levelname)s] %(message)s")

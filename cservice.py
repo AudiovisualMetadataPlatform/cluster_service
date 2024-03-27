@@ -39,7 +39,7 @@ from string import Template
 import __main__
 
 class ClusterService():
-    def __init__(self, workdir: Path = None, settle_time=300):
+    def __init__(self, workdir: Path = None, settle_time=30):
         self.JOB_SETTLE_TIME=settle_time
         self.workdir = workdir
 
@@ -118,6 +118,7 @@ class ClusterService():
         # resubmit ourselves if needed.
         def usr1handler(sig, frame):
             """Handle USR1"""
+            logging.info("Received timeout signal, resubmitting ourselves to continue")
             # resubmit ourselves.
             self.self_submission(info)
             exit(0)
@@ -193,7 +194,7 @@ class ClusterService():
         if info['debug']:
             command_array.append("--debug")
         slurm_script = '\n'.join(['#!/bin/bash',
-                                  ' '.join(command_array),
+                                  'exec ' + ' '.join(command_array),
                                   'exit $?'])
         
         logging.debug(f"Submission command:\n{submit_command}")
