@@ -56,6 +56,10 @@ class ClusterService():
         args = parser.parse_args()
         logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO,
                             format="%(asctime)s [%(process)d:%(filename)s:%(lineno)d] [%(levelname)s] %(message)s")
+        # turn off numba debug messags
+        logging.getLogger('numba').setLevel(logging.WARNING)    
+
+
 
         self.workdir = Path(args.workdir)
         # do some sanity checking...
@@ -77,6 +81,12 @@ class ClusterService():
                     f.write("   -p general\n")
             exit(1)
 
+        if args.continuation and not (self.workdir / "jobinfo.yaml").exists():
+            # somehow we got called with the continuation flag but we're not
+            # really running.  Probably an accident, so let's ignore the
+            # continuation flag
+            args.continuation = False
+
         if not args.continuation:
             # This isn't a continuation.  Check to see if we're already submitted 
             # or actually running...  
@@ -94,7 +104,7 @@ class ClusterService():
                         self.self_submission(info)
                         logging.info(f"Job initially submitted with jobid {info['jobid']}")
                     else:
-                        logging.info("Jobinfo file already exists, we're already in the system")        
+                        logging.info("Jobinfo file already exists, service is already in the system")        
                 (self.workdir / "submit.lock").unlink(missing_ok=True)
             except FileExistsError:
                 logging.info("Submission conflict")
@@ -172,25 +182,29 @@ class ClusterService():
         """Submit ourselves back into slurm"""
         # read the .submit file for the command to use for submission
         submit_command = (self.workdir / ".submit").read_text().strip()
-        template_vars = {'workdir': str(self.workdir.resolve())}
+        template_vars = {'workdir': str(self.workdir.absolute())}
         template_vars.update(os.environ)
         template = Template(submit_command)
         submit_command = template.safe_substitute(template_vars)
-        submit_array = [submit_command,
-                        str(Path(__main__.__file__).resolve()),
-                        str(self.workdir.resolve()),
+        
+        command_array = [str(Path(__main__.__file__).absolute()),
+                        str(self.workdir.absolute()),
                         '--continuation']
         if info['debug']:
-            submit_array.append("--debug")
-
-        logging.debug(f"Submitting job with command {' '.join(submit_array)}")
-        p = subprocess.run(" ".join(submit_array), 
-                        stdout=subprocess.PIPE, encoding="utf-8",
-                        shell=True)
-        if p.returncode != 0:
-            logging.error(f"Couldn't submit ourselves, rc {p.returncode}: {p.stdout}")
-            exit(1)
+            command_array.append("--debug")
+        slurm_script = '\n'.join(['#!/bin/bash',
+                                  ' '.join(command_array),
+                                  'exit $?'])
         
+        logging.debug(f"Submission command:\n{submit_command}")
+        logging.debug(f"Submitting job with slurm script:\n{slurm_script}")
+        p = subprocess.run(submit_command, input=slurm_script,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8",
+                           shell=True)
+        if p.returncode != 0:
+            logging.error(f"Couldn't submit ourselves, rc {p.returncode}: {p.stderr}")
+            exit(1)
+
         info['jobid'] = p.stdout.strip()
         with open(self.workdir / "jobinfo.yaml", "w") as f:
             yaml.safe_dump(info, f)

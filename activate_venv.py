@@ -51,7 +51,6 @@ if 'VENV_RESTART' not in os.environ:
     for p in (venv_path / "environ").glob('*'):
         update_env(p.name, p.read_text().strip())
 
-
     # build the command line...
     this_script = str(Path(__main__.__file__).resolve())
     #args = [this_script, *sys.argv]

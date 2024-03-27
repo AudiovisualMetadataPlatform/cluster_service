@@ -19,6 +19,7 @@ class Whisper(ClusterService):
                 if (jobdata['jobdir'] / (file + ".whisper.json")).exists():
                     jobdata['manifest'].remove(file)
 
+
     def work(self):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         logging.info(f"Whisper will use {device} for computation")
@@ -89,8 +90,6 @@ class Whisper(ClusterService):
                 logging.warning("Some processes didn't complete even though they were valid")
                 break
 
-
-    
 
 if __name__ == "__main__":
     Whisper().main()
