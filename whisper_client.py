@@ -16,7 +16,8 @@ def main():
     parser.add_argument("--hpchost", type=str, default="localhost", help="HPC host")
     parser.add_argument("--hpcuser", type=str, default=getpass.getuser(), help="HPC User")
     parser.add_argument("--hpcworkdir", type=str, required=True, help="HPC Working directory")
-    parser.add_argument("--hpcscript", type=str, default="cluster_service/whisper_service.py")
+    parser.add_argument("--hpcscript", type=str, default="cluster_service/whisper_service.py", help="The whisper_service.py script")
+    parser.add_argument("--hpcsubmit", type=str, help="The hpc submit script (defaults $workdir/.submit)")
     sps = parser.add_subparsers(required=True, metavar='mode', dest='mode', help="Client Mode")
     
     sp = sps.add_parser('submit', help="Submit a new job")
@@ -26,6 +27,9 @@ def main():
     sp.add_argument("files", nargs='+', help="Files to process")
     
     sp = sps.add_parser("list", help="List processing jobs")
+    sp.add_argument("--status", default=False, action="store_true", help="Also show status")
+    sp.add_argument("--completion", default=False, action="store_true", help="Show how much has been done")
+    sp.add_argument("--hpcid", default=False, action="store_true", help="Show the HPC job ID")
 
     sp = sps.add_parser('check', help="Check the status of a job")
     sp.add_argument("jobid", help="Job ID")
@@ -40,13 +44,16 @@ def main():
 
     sp = sps.add_parser('restart', help="Force the server to restart")
 
-
     args = vars(parser.parse_args())
     logging.basicConfig(level=logging.DEBUG if args['debug'] else logging.INFO,
                     format="%(asctime)s [%(process)d:%(filename)s:%(lineno)d] [%(levelname)s] %(message)s")
     # tell paramiko that I don't want messages unless they're important, even if
     # I've set the root logger to debug.
     logging.getLogger("paramiko").setLevel(logging.WARNING)
+
+    # find the hpc submit script if it isn't specified
+    if args['hpcsubmit'] is None:
+        args['hpcsubmit'] = args['hpcworkdir'] + "/.submit"
 
     modes = {'submit': submit_job,
              'list': list_jobs,
@@ -118,14 +125,24 @@ def submit_job(ssh: paramiko.SSHClient, hpcworkdir=None, model=None,
     exit(0)
 
 
-def list_jobs(ssh, hpcworkdir=None, **kwargs):
+def list_jobs(ssh, hpcworkdir=None, status=False, completion=False, hpcid=False, **kwargs):
     "Print the jobids on the system"
     # connect to the hpc node.
     sftp = ssh.open_sftp()
     for f in sftp.listdir(hpcworkdir):
         if valid_job(sftp, hpcworkdir, f):
-            print(f)
-        
+            done, total = determine_job_status(sftp, hpcworkdir, f)            
+            r = [f"{hpcworkdir.split('/')[-1]}/{f}"]
+            if status:
+                stext = "FINISHED" if done == total else "IN_PROGRESS"
+                r.append(stext)
+            if completion:
+                r.append(f"{done}/{total}")
+            if hpcid:
+                r.append(get_hpc_job_id(sftp, hpcworkdir))
+                
+            print("\t".join([str(x) for x in r]))
+
     exit(0)
 
 
@@ -136,23 +153,15 @@ def check_job(ssh: paramiko.SSHClient, hpcworkdir=None, jobid=None, **kwargs):
         logging.error(f"Cannot check job: Jobid {jobid} is not valid")
         exit(1)
 
-    # read the whisper.job file to get the manifest
-    job = yaml.safe_load(sftp.open(f"{hpcworkdir}/{jobid}/whisper.job").read())
-    for n in job['manifest']:
-        try:
-            sftp.stat(f"{hpcworkdir}/{jobid}/{n}.whisper.json")
-        except:
-            print("IN PROGRESS")
-            exit(2)
-    print("FINISHED")
+    done, total = determine_job_status(sftp, hpcworkdir, jobid)    
+    hpcjobid = get_hpc_job_id(sftp, hpcworkdir)
+    stext = "FINISHED" if done == total else "IN_PROGRESS"
+    print(f"{stext}\t{done}/{total}\t{hpcjobid}")
+    if done == total:
+        exit(2)
     exit(0)
     
     
-    
-
-
-
-
 
 def retrieve_job(ssh: paramiko.SSHClient, hpcworkdir=None, jobid=None, outdir=None, purge=None, **kwargs):
     "Retrive the directory from host"    
@@ -223,6 +232,28 @@ def recursive_list(sftp, path):
         else:                
             results.append(f"{path}/{item.filename}")
     return results
+
+
+def determine_job_status(sftp, hpcworkdir, jobid):
+    "read the whisper.job file to get the manifest and determine status"
+    job = yaml.safe_load(sftp.open(f"{hpcworkdir}/{jobid}/whisper.job").read())    
+    done = 0
+    for n in job['manifest']:
+        try:
+            sftp.stat(f"{hpcworkdir}/{jobid}/{n}.whisper.json")
+            done += 1
+        except:
+            pass
+    return done, len(job['manifest'])
+
+
+def get_hpc_job_id(sftp, hpcworkdir):
+    "Get the HPC job id"
+    try:
+        job = yaml.safe_load(sftp.open(f"{hpcworkdir}/jobinfo.yaml").read())
+        return job['jobid']
+    except Exception:        
+        return None
 
 
 if __name__ == "__main__":

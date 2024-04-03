@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+jiwer = "==3.0.3"
+openai-whisper = "==20231117"
+pyyaml = "==6.0.1"
+paramiko = "==3.4.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
