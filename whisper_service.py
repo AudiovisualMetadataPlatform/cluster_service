@@ -12,12 +12,12 @@ import time
 class Whisper(ClusterService):
 
     def filter_jobdata(self, jobdata: dict):
-            # update the manifest.  If there's a .whisper.json file for a manifest
-            # entry, we'll remove the entry.  If there's nothing left in the manifest
-            # then we won't add it to the jobs since it's effectively finished.
-            for file in list(jobdata['manifest']):
-                if (jobdata['jobdir'] / (file + ".whisper.json")).exists():
-                    jobdata['manifest'].remove(file)
+        # update the manifest.  If there's a .whisper.json file for a manifest
+        # entry, we'll remove the entry.  If there's nothing left in the manifest
+        # then we won't add it to the jobs since it's effectively finished.
+        for file in list(jobdata['manifest']):
+            if file and (jobdata['jobdir'] / (file + ".whisper.json")).exists():
+                jobdata['manifest'].remove(file)
 
 
     def work(self):

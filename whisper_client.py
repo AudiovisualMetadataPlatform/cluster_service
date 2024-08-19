@@ -87,13 +87,14 @@ def submit_job(ssh: paramiko.SSHClient, hpcworkdir=None, model=None,
     sftp.chdir(jobname)
     logging.info(f"Created job directory {jobname}")
 
-    # copy the individual files to the job directory
     config = {
         'manifest': [],
         'language': language,
         'prompt': prompt,
         'model': model
     }
+
+    # copy the individual files to the job directory
     for f in files:
         f = Path(f)
         logging.info(f"Uploading {f}")
