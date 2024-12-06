@@ -12,12 +12,12 @@ import time
 class Whisper(ClusterService):
 
     def filter_jobdata(self, jobdata: dict):
-            # update the manifest.  If there's a .whisper.json file for a manifest
-            # entry, we'll remove the entry.  If there's nothing left in the manifest
-            # then we won't add it to the jobs since it's effectively finished.
-            for file in list(jobdata['manifest']):
-                if (jobdata['jobdir'] / (file + ".whisper.json")).exists():
-                    jobdata['manifest'].remove(file)
+        # update the manifest.  If there's a .whisper.json file for a manifest
+        # entry, we'll remove the entry.  If there's nothing left in the manifest
+        # then we won't add it to the jobs since it's effectively finished.
+        for file in list(jobdata['manifest']):
+            if file and (jobdata['jobdir'] / (file + ".whisper.json")).exists():
+                jobdata['manifest'].remove(file)
 
 
     def work(self):
@@ -53,7 +53,7 @@ class Whisper(ClusterService):
                                 detect_audio = whisper.pad_or_trim(audio)
                                 # This is a bug https://github.com/openai/whisper/discussions/1778
                                 # basically, the v3 large model uses 128 mels, and the others use 80.
-                                mel = whisper.log_mel_spectrogram(detect_audio, n_mels=128 if model_name in ('large', 'large_v3') else 80).to(device)
+                                mel = whisper.log_mel_spectrogram(detect_audio, n_mels=model.dims.n_mels).to(device)
                                 _, probs = model.detect_language(mel)            
                                 probs = {k: v for k, v in probs.items() if k in probable_languages}                        
                                 language = max(probs, key=probs.get)                          
