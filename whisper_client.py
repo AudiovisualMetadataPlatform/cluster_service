@@ -21,7 +21,8 @@ def main():
     sps = parser.add_subparsers(required=True, metavar='mode', dest='mode', help="Client Mode")
     
     sp = sps.add_parser('submit', help="Submit a new job")
-    sp.add_argument("--model", choices=['base', 'tiny', 'small', 'medium', 'large', 'large_v2', 'large_v3'], default='medium', help="Language model")
+    sp.add_argument("--model", choices=['base', 'tiny', 'small', 'medium', 'large', 'large-v2', 'large-v3',
+                                        'large-v3-turbo', 'turbo'], default='turbo', help="Language model")
     sp.add_argument("--language", choices=['auto', 'en', 'zh', 'de', 'es', 'ru', 'ko', 'fr', 'ja'], default="en", help="Language")
     sp.add_argument("--prompt", default=None, help="Model prompt")
     sp.add_argument("files", nargs='+', help="Files to process")
